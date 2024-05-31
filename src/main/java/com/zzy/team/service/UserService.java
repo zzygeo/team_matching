@@ -49,6 +49,7 @@ public interface UserService extends IService<User> {
      * @param tags
      * @return
      */
-    List<User> searchUserByTags(List<String> tags);
+    List<User> searchUserByTagsSql(List<String> tags);
 
+    List<User> searchUserByMemory(List<String> tags);
 }

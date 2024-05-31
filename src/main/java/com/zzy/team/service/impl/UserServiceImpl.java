@@ -2,6 +2,7 @@ package com.zzy.team.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.google.gson.Gson;
 import com.zzy.team.constant.ErrorStatus;
 import com.zzy.team.constant.UserConstant;
 import com.zzy.team.exception.BusinessException;
@@ -15,7 +16,9 @@ import org.springframework.util.CollectionUtils;
 import org.springframework.util.DigestUtils;
 
 import javax.servlet.http.HttpServletRequest;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -113,7 +116,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
         }
         // 数据脱敏
         User safeUser = getSafeUser(user);
-        // 记录用户的登陆状态
+        // 记录用户的登陆状态，此处目前是单机的方式
         httpRequest.getSession().setAttribute(UserConstant.SING_KEY, safeUser);
 
         return safeUser;
@@ -158,19 +161,44 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
      * @return
      */
     @Override
-    public List<User> searchUserByTags(List<String> tags) {
+    public List<User> searchUserByTagsSql(List<String> tags) {
         // 为空或者长度为0
         if (CollectionUtils.isEmpty(tags)) {
             throw new BusinessException(ErrorStatus.PARAMS_ERROR);
         }
+        // sql层面查询
         QueryWrapper<User> queryWrapper = new QueryWrapper<>();
         for (String tag : tags) {
             // 拼接多个 like
             queryWrapper = queryWrapper.like("tags", tag);
         }
-
         List<User> userList = this.list(queryWrapper);
         return userList.stream().map(this::getSafeUser).collect(Collectors.toList());
+    }
+
+    @Override
+    public List<User> searchUserByMemory(List<String> tags) {
+        // 为空或者长度为0
+        if (CollectionUtils.isEmpty(tags)) {
+            throw new BusinessException(ErrorStatus.PARAMS_ERROR);
+        }
+        // 在内存中查询
+        Gson gson = new Gson();
+        List<User> list = this.list();
+        List<User> users = list.stream().filter((user) -> {
+            String userTags = user.getTags();
+            if (userTags == null) {
+                return false;
+            }
+            Set<String> set = gson.fromJson(userTags, Set.class);
+            for (String tag : set) {
+                if (!set.contains(tag)) {
+                    return false;
+                }
+            }
+            return true;
+        }).collect(Collectors.toList());
+        return users;
     }
 }
 
