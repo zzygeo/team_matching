@@ -17,7 +17,7 @@ class UserServiceImplTest {
     @Test
     void searchUserByTags() {
         long start = System.currentTimeMillis();
-        List<User> users = userService.searchUserByTags(List.of("java", "c++"));
+        List<User> users = userService.searchUserByMemory(List.of("java", "c++"));
         long end = System.currentTimeMillis();
 
         System.out.println(end - start);
