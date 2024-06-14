@@ -34,6 +34,12 @@ public class User implements Serializable {
     private String userAccount;
 
     /**
+     * 个人简介
+     */
+    @TableField(value = "profile")
+    private String profile;
+
+    /**
      * 用户头像
      */
     @TableField(value = "avatar_url")

@@ -1,9 +1,21 @@
 package com.zzy.team.constant;
 
 public interface UserConstant {
-    public final static String SING_KEY = "123456";
+    /**
+     * 用户登陆session凭证
+     */
+    String SING_KEY = "123456";
 
-    public final static int DEFAULT_ROLE = 0; // 0-普通用户 1-管理员
+    int DEFAULT_ROLE = 0;
 
-    public final static int ADMIN_ROLE = 1; // 用户状态正常
+    int ADMIN_ROLE = 1;
+    /**
+     * 用户推荐前缀字符
+     */
+    String RECOMMEND_USER = "team_recommend_user:";
+
+    /**
+     * 密码加盐凭证
+     */
+    String PASSWORD_SALT = "1a2b3c4d5e";
 }

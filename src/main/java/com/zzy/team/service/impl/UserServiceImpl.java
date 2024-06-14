@@ -1,6 +1,7 @@
 package com.zzy.team.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.google.gson.Gson;
 import com.zzy.team.constant.ErrorStatus;
@@ -11,14 +12,16 @@ import com.zzy.team.model.domain.User;
 import com.zzy.team.service.UserService;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.util.CollectionUtils;
 import org.springframework.util.DigestUtils;
 
 import javax.servlet.http.HttpServletRequest;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -32,11 +35,11 @@ import java.util.stream.Collectors;
 @Slf4j
 public class UserServiceImpl extends ServiceImpl<UserMapper, User>
         implements UserService {
-
-    private final static String SALT = "1a2b3c4d5e";
+    @Autowired
+    RedisTemplate redisTemplate;
 
     @Override
-    public long userRegister(String userAccount, String userPassword, String checkPassword) {
+    public boolean userRegister(String userAccount, String userPassword, String checkPassword) {
         // 1.校验
         if (StringUtils.isAnyBlank(userAccount, userPassword, checkPassword)) {
             throw new BusinessException(ErrorStatus.PARAMS_ERROR, "用户名或密码不能为空");
@@ -68,7 +71,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
             throw new BusinessException(ErrorStatus.PARAMS_ERROR, "账号重复");
         }
         // 密码加密
-        String encryptPassword = DigestUtils.md5DigestAsHex((SALT + userPassword).getBytes());
+        String encryptPassword = DigestUtils.md5DigestAsHex((UserConstant.PASSWORD_SALT + userPassword).getBytes());
 
         // 插入数据
         User user = new User();
@@ -79,40 +82,40 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
             throw new BusinessException(ErrorStatus.SERVICE_ERROR, "注册失败");
         }
         // Long拆箱到long，如果Long为null，会拆箱错误
-        return user.getId();
+        return true;
     }
 
     @Override
     public User doLogin(String userAccount, String userPassword, HttpServletRequest httpRequest) {
         // 1.校验
         if (StringUtils.isAnyBlank(userAccount, userPassword)) {
-            return null;
+            throw new BusinessException(ErrorStatus.PARAMS_ERROR, "用户名或密码不能为空");
         }
         // 用户名长度
         if (userAccount.length() < 4) {
-            return null;
+            throw new BusinessException(ErrorStatus.PARAMS_ERROR, "用户名长度不能小于4位");
         }
         // 密码长度
         if (userPassword.length() < 8) {
-            return null;
+            throw new BusinessException(ErrorStatus.PARAMS_ERROR, "密码长度不能小于8位");
         }
         // 账号不能包含特殊字符, 只允许字母、数字和下划线
         String validatePattern = "^[a-zA-Z0-9_]+$";
         Matcher matcher = Pattern.compile(validatePattern).matcher(userAccount);
         if (!matcher.matches()) {
             // 包含了特殊字符，没有匹配到返回-1
-            return null;
+            throw new BusinessException(ErrorStatus.PARAMS_ERROR, "用户名只能包含字母、数字和下划线");
         }
 
-        String encryptPassword = DigestUtils.md5DigestAsHex((SALT + userPassword).getBytes());
+        String encryptPassword = DigestUtils.md5DigestAsHex((UserConstant.PASSWORD_SALT + userPassword).getBytes());
         QueryWrapper<User> queryWrapper = new QueryWrapper<>();
-        queryWrapper.eq("userAccount", userAccount);
-        queryWrapper.eq("userPassword", encryptPassword);
+        queryWrapper.eq("user_account", userAccount);
+        queryWrapper.eq("user_password", encryptPassword);
         User user = this.getOne(queryWrapper);
         // 用户不存在
         if (user == null) {
             log.info("user login failed, userAccount cannot match userPassword");
-            return null;
+            throw new BusinessException(ErrorStatus.PARAMS_ERROR, "用户名或密码不正确");
         }
         // 数据脱敏
         User safeUser = getSafeUser(user);
@@ -123,16 +126,35 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
     }
 
     @Override
-    public int userLogout(HttpServletRequest httpServletRequest) {
+    public void userLogout(HttpServletRequest httpServletRequest) {
         // 移除登陆状态
         httpServletRequest.getSession().removeAttribute(UserConstant.SING_KEY);
-        return 1;
+    }
+
+    @Override
+    public boolean updateUser(User user, User loginUser) {
+        Long id = user.getId();
+        if (id == null || id <= 0) {
+            throw new BusinessException(ErrorStatus.PARAMS_ERROR, "用户id不能为空");
+        }
+        // 判断权限，仅管理员和自己可以修改信息
+        if (!isAdmin(loginUser) || !user.getId().equals(loginUser.getId())) {
+            throw new BusinessException(ErrorStatus.PARAMS_ERROR, "用户权限不足");
+        }
+        User byId = this.getById(id);
+        // 先判断用户存不存在
+        if (byId == null) {
+            throw new BusinessException(ErrorStatus.PARAMS_ERROR, "用户不存在");
+        }
+        // todo 如果什么都没传的话，那么就不更新
+        
+        return this.updateById(user);
     }
 
     /**
      * 用户脱敏
      *
-     * @param originalUse
+     * @par    User loginUser = UserHolder.getUser();am originalUse
      * @return
      */
     public User getSafeUser(User originalUse) {
@@ -151,6 +173,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
         safeUser.setCreateTime(originalUse.getCreateTime());
         safeUser.setUserRole(originalUse.getUserRole());
         safeUser.setTags(originalUse.getTags());
+        safeUser.setPlanetCode(originalUse.getPlanetCode());
         return safeUser;
     }
 
@@ -191,14 +214,44 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
                 return false;
             }
             Set<String> set = gson.fromJson(userTags, Set.class);
-            for (String tag : set) {
+            for (String tag : tags) {
                 if (!set.contains(tag)) {
                     return false;
                 }
             }
             return true;
-        }).collect(Collectors.toList());
+        }).map(this::getSafeUser).collect(Collectors.toList());
         return users;
+
+    }
+
+    @Override
+    public Page<User> pageUsers(Integer pageNum, Integer pageSize, User loginUser) {
+        if (loginUser == null) {
+            throw new BusinessException(ErrorStatus.UNAUTHORIZED_ERROR, "用户未登陆");
+        }
+        // 根据当前登陆的用户推荐伙伴
+        String user_key = UserConstant.RECOMMEND_USER + loginUser.getId();
+        Page<User> redisUserPage = (Page<User>) redisTemplate.opsForValue().get(user_key);
+        if (redisUserPage != null) {
+            return redisUserPage;
+
+        }
+        Page<User> userPage = new Page<>(pageNum, pageSize);
+        Page<User> page = this.page(userPage);
+        List<User> users = page.getRecords().stream().map(this::getSafeUser).collect(Collectors.toList());
+        page.setRecords(users);
+        try {
+            redisTemplate.opsForValue().set(user_key, page, 20000, TimeUnit.MILLISECONDS);
+        } catch (Exception e) {
+            log.error("redis key set error: ", e);
+        }
+        return page;
+    }
+
+    @Override
+    public boolean isAdmin(User user) {
+        return user != null && user.getUserRole() == UserConstant.ADMIN_ROLE;
     }
 }
 
