@@ -21,6 +21,6 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(RuntimeException.class)
     public Result runtimeExceptionHandler(RuntimeException e) {
         log.error("runtimeException:", e);
-        return Result.FAIL(ErrorStatus.SERVICE_ERROR, e.getMessage(), "");
+        return Result.FAIL(ErrorStatus.SERVICE_ERROR, e.getMessage());
     }
 }

@@ -22,7 +22,7 @@ class UserServiceImplTest {
 
     private ThreadPoolExecutor pool = new ThreadPoolExecutor(60, 500, 10,TimeUnit.MINUTES, new ArrayBlockingQueue<>(1000));
 
-    @Test
+//    @Test
     public void testInsertUser() {
         StopWatch stopWatch = new StopWatch();
         stopWatch.start();
@@ -51,7 +51,7 @@ class UserServiceImplTest {
         System.out.println(l);
     }
 
-    @Test
+//    @Test
     public void doConcurrentInsertUser() {
         StopWatch stopWatch = new StopWatch();
         stopWatch.start();

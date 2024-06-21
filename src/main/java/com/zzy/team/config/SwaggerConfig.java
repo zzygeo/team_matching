@@ -11,6 +11,11 @@ import springfox.documentation.spi.DocumentationType;
 import springfox.documentation.spring.web.plugins.Docket;
 import springfox.documentation.swagger2.annotations.EnableSwagger2WebMvc;
 
+/**
+ * @Author zzy
+ * @Description 文档在 host:port/doc.html
+ */
+
 @Configuration
 @EnableSwagger2WebMvc
 public class SwaggerConfig {

@@ -11,6 +11,8 @@ import com.zzy.team.model.request.UserLoginRequest;
 import com.zzy.team.model.request.UserRegisterRequest;
 import com.zzy.team.service.UserService;
 import com.zzy.team.utils.ServletUtils;
+import io.swagger.annotations.Api;
+import io.swagger.annotations.ApiOperation;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -28,6 +30,7 @@ import java.util.stream.Collectors;
 @RequestMapping("/user")
 @CrossOrigin(value = {"http://localhost:5173"}, allowCredentials = "true")
 @Slf4j
+@Api(tags = {"用户操作接口"})
 public class UserController {
     @Autowired
     private UserService userService;
@@ -35,6 +38,7 @@ public class UserController {
     RedisTemplate redisTemplate;
 
     @PostMapping("/register")
+    @ApiOperation("用户注册")
     public Result userRegister(@RequestBody UserRegisterRequest userRegisterRequest) {
         if (userRegisterRequest == null) {
             throw new BusinessException(ErrorStatus.PARAMS_ERROR);
@@ -51,6 +55,7 @@ public class UserController {
     }
 
     @PostMapping("/login")
+    @ApiOperation("用户登录")
     public Result userLogin(@RequestBody UserLoginRequest userLoginRequest, HttpServletRequest httpServletRequest) {
         if (userLoginRequest == null) {
             throw new BusinessException(ErrorStatus.PARAMS_ERROR);
@@ -65,6 +70,7 @@ public class UserController {
     }
 
     @PostMapping("/logout")
+    @ApiOperation("用户登出")
     public Result logout(HttpServletRequest request) {
         if (request == null) {
             return null;
@@ -74,6 +80,7 @@ public class UserController {
     }
 
     @GetMapping("/current")
+    @ApiOperation("获取当前登录用户信息")
     public Result getCurrentUser(HttpServletRequest httpServletRequest) {
         User user = (User) httpServletRequest.getSession().getAttribute(UserConstant.SING_KEY);
         if (user == null) {
@@ -87,6 +94,7 @@ public class UserController {
     }
 
     @GetMapping("/search")
+    @ApiOperation("搜索用户")
     public Result searchUsers(String username, HttpServletRequest httpServletRequest) {
         User loginUser = ServletUtils.getLoginUser(httpServletRequest);
         boolean admin = userService.isAdmin(loginUser);
@@ -102,6 +110,7 @@ public class UserController {
     }
 
     @GetMapping("/recommend")
+    @ApiOperation("推荐用户")
     public Result recommendUsers(Integer pageNum, Integer pageSize, HttpServletRequest request) {
         // 先从缓存中读取数据
         if (pageNum == null || pageNum < 1 || pageSize == null || pageSize < 1) {
@@ -113,6 +122,7 @@ public class UserController {
     }
 
     @PostMapping("/delete")
+    @ApiOperation("删除用户")
     public Result deleteUser(long id, HttpServletRequest httpServletRequest) {
         User loginUser = ServletUtils.getLoginUser(httpServletRequest);
         // 仅管理员可查询
@@ -128,6 +138,7 @@ public class UserController {
     }
 
     @GetMapping("/search/tags")
+    @ApiOperation("通过标签搜索用户")
     public Result searchUsersByTags(@RequestParam(required = false) List<String> tags) {
         if (CollectionUtils.isEmpty(tags)) {
             throw new BusinessException(ErrorStatus.PARAMS_ERROR, "标签不能为空");

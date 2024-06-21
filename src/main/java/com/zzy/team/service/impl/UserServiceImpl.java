@@ -7,7 +7,7 @@ import com.google.gson.Gson;
 import com.zzy.team.constant.ErrorStatus;
 import com.zzy.team.constant.UserConstant;
 import com.zzy.team.exception.BusinessException;
-import com.zzy.team.mapper.UserMapper;
+import com.zzy.team.service.mapper.UserMapper;
 import com.zzy.team.model.domain.User;
 import com.zzy.team.service.UserService;
 import lombok.extern.slf4j.Slf4j;

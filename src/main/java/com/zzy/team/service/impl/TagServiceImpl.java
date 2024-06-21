@@ -3,7 +3,7 @@ package com.zzy.team.service.impl;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.zzy.team.model.domain.Tag;
 import com.zzy.team.service.TagService;
-import com.zzy.team.mapper.TagMapper;
+import com.zzy.team.service.mapper.TagMapper;
 import org.springframework.stereotype.Service;
 
 /**

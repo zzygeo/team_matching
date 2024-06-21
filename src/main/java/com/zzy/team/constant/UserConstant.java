@@ -18,4 +18,6 @@ public interface UserConstant {
      * 密码加盐凭证
      */
     String PASSWORD_SALT = "1a2b3c4d5e";
+
+    String PRECACHE_JOB_LOCK = "team:precachejob:lock";
 }

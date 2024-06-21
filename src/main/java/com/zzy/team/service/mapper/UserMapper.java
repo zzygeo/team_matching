@@ -1,4 +1,4 @@
-package com.zzy.team.mapper;
+package com.zzy.team.service.mapper;
 
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.zzy.team.model.domain.User;

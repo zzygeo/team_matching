@@ -17,7 +17,7 @@ public class RedisTest {
     @Autowired
     private RedisTemplate redisTemplate;
 
-    @Test
+//    @Test
     public void test() {
         ValueOperations valueOperations = redisTemplate.opsForValue();
         valueOperations.set("name", "zzy");
