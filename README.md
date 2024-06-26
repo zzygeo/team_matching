@@ -99,7 +99,7 @@ create table team (
     team_name varchar(20) not null comment '队名',
     description varchar(256) default '' comment '描述',
     user_id bigint not null comment '创建者id',
-    expire_time timestamp not null comment '过期时间',
+    expire_time timestamp comment '过期时间',
     max_nums int not null comment '最大人数',
     create_time timestamp not null default current_timestamp comment '创建时间',
     update_time timestamp not null default current_timestamp on update current_timestamp comment '更新时间',
@@ -132,7 +132,7 @@ create table user_team (
     id bigint auto_increment comment 'id' primary key ,
     user_id bigint not null comment '用户id',
     team_id bigint not null comment '队伍id',
-    join_time timestamp not null comment '加入时间',
+    join_time timestamp comment '加入时间',
     create_time timestamp not null default current_timestamp comment '创建时间',
     update_time timestamp not null default current_timestamp on update current_timestamp comment '更新时间',
     is_delete tinyint not null default 0 comment '是否删除'
@@ -143,6 +143,8 @@ create table user_team (
 
 ## 标签管理
 
+### 清单
+
 1. 添加标签。
 2. 修改标签。
 3. 分页查询标签。
@@ -150,6 +152,8 @@ create table user_team (
 5. 批量删除标签。
 
 ## 用户管理
+
+### 清单
 
 1. 添加用户。
 2. 修改用户信息。
@@ -160,13 +164,15 @@ create table user_team (
 
 ------
 
-### 注意点
+### 设计
 
 **查询标签：**
 
 可以用**sql拼接多个模糊查询**，也可以**先把所有的用户查询出来在代码里过滤**，要**结合数据量**去实践谁快，必要时可以根据用户输出的的tag**参数的多少去选择**查询方式，在内存和资源充足的情况下，甚至可以**同时进行**，谁先快返回哪个结果，也可以通过sql**先筛选出一部分数据**以后再到内存中去计算。
 
 ## 组队功能
+
+### 清单
 
 1. 用户可以创建一个队伍，设置队伍的人数，标题，描述，过期时间。
 2. 队伍信息可以修改，队伍可以设置密码。
@@ -175,8 +181,83 @@ create table user_team (
 5. 队长可以解散队伍。
 6. 分享队伍、邀请人加入队伍。
 7. 队伍人满以后发送消息通知。
+8. 一个用户最多创建5个队伍。
+
+### 设计
+
+**创建队伍**
+
+1. 参数不能为空。
+2. 用户需要登陆。
+3. 队伍名称不能为空，最大人数不能小于1且不能超过20，描述信息不能超过256，队伍名称不能超过20，队伍类型为int,如果密码有的话小于32，超时时间必须大于当前时间，用户创建的队伍数是否小于5。
+4. 设置userId。
+
+------
+
+**查询队伍列表**
+
+1. 用户名不为空的话，就作为查询条件。
+2. 不展示过期的队伍，即根据队伍的过期时间对队伍进行筛选。
+3. 查询队伍列表时，展示队长的消息。
+4. 分页查询。
+5. 只有管理员才能查到非公开和加密的房间。
+
+------
+
+**修改队伍信息**
+
+1. 队伍不能为空，队伍id不能为空。
+2. 只有管理员或者队伍的拥有者才能修改队伍信息。
+3. 如果要修改的队伍不存在，则直接返回。
+4. 如果传过来的队伍信息和数据库里的数据信息一致，则不修改，节省数据库的性能。
+5. 如果修改队伍的状态为加密，则必须设置队伍密码
+
+------
+
+**加入队伍**
+
+1. 最多加入5个队伍。
+2. 加入的队伍必须是未过期且存在的。
+3. 不允许加入私有的队伍。
+4. 不能加入重复的队伍（幂等性）。
+5. 如果加入的是加密类型的队伍，则密码要匹配。
+6. 添加用户队伍的关联关系。
+
+------
+
+**退出队伍**
+
+1. 参数校验。
+2. 如果队伍只剩一人，则删除队伍。
+3. 如果是队长退出队伍，则把队长交给第二个加入队伍的人。
+4. 如果是成员退出，则直接退出。
+
+------
+
+**解散队伍**
+
+1. 校验请求参数。
+2. 判断队伍是否存在。
+3. 判断是不是队长。
+4. 移除该队伍的关联关系。
+5. 退出队伍。
+
+------
+
+**获取当前用户已加入的队伍**
+
+1. 参数校验。
+2. 复用获取用户列表的接口
+
+**获取当前用户创建的队伍**
+
+1. 参数校验。
+2. 先查询队伍用户关系表，拿到teamIds。
+3. 复用获取用户列表的接口，并新增teamIds的查询条件并。
 
 ## 随机匹配
+
+目的是为了用户更快的发现和自己兴趣相同的队伍。
 
 # 分布式锁
 

@@ -1,53 +1,36 @@
-package com.zzy.team.model.domain;
+package com.zzy.team.model.vo;
 
-import com.baomidou.mybatisplus.annotation.*;
-
-import java.io.Serializable;
-import java.util.Date;
+import com.baomidou.mybatisplus.annotation.IdType;
+import com.baomidou.mybatisplus.annotation.TableField;
+import com.baomidou.mybatisplus.annotation.TableId;
 import lombok.Data;
 
-/**
- * 用户表
- * @TableName user
- */
-@TableName(value ="user")
+import java.util.Date;
+
 @Data
-public class User implements Serializable {
-    /**
-     * 用户id
-     */
-    @TableId(value = "id", type = IdType.AUTO)
+public class UserVo {
+
     private Long id;
 
     /**
      * 用户昵称
      */
-    @TableField(value = "username")
     private String username;
 
     /**
      * 用户登录账号
      */
-    @TableField(value = "user_account")
     private String userAccount;
 
     /**
      * 个人简介
      */
-    @TableField(value = "profile")
     private String profile;
 
     /**
      * 用户头像
      */
-    @TableField(value = "avatar_url")
     private String avatarUrl;
-
-    /**
-     * 用户密码
-     */
-    @TableField(value = "user_password")
-    private String userPassword;
 
     /**
      * 用户手机号
@@ -80,13 +63,6 @@ public class User implements Serializable {
     private Date updateTime;
 
     /**
-     * 0表示未删除，1表示删除
-     */
-    @TableField(value = "is_delete")
-    @TableLogic
-    private Integer isDelete;
-
-    /**
      * 用户状态 0 普通用户 1 管理员
      */
     @TableField(value = "user_role")
@@ -109,7 +85,4 @@ public class User implements Serializable {
      */
     @TableField(value = "gender")
     private Integer gender;
-
-    @TableField(exist = false)
-    private static final long serialVersionUID = 1L;
 }

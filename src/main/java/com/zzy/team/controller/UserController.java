@@ -148,6 +148,7 @@ public class UserController {
     }
 
     @PostMapping("/update")
+    @ApiOperation("更新用户信息")
     public Result updateUser(@RequestBody User user, HttpServletRequest request) {
         if (user == null) {
             throw new BusinessException(ErrorStatus.PARAMS_ERROR, "用户不能为空");
