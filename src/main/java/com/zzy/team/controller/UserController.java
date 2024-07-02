@@ -6,6 +6,7 @@ import com.zzy.team.common.Result;
 import com.zzy.team.constant.ErrorStatus;
 import com.zzy.team.constant.UserConstant;
 import com.zzy.team.exception.BusinessException;
+import com.zzy.team.model.domain.Team;
 import com.zzy.team.model.domain.User;
 import com.zzy.team.model.request.UserLoginRequest;
 import com.zzy.team.model.request.UserRegisterRequest;
@@ -28,7 +29,6 @@ import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/user")
-@CrossOrigin(value = {"http://localhost:5173"}, allowCredentials = "true")
 @Slf4j
 @Api(tags = {"用户操作接口"})
 public class UserController {
@@ -162,4 +162,25 @@ public class UserController {
         return b ? Result.OK("更新成功", null) : Result.FAIL(ErrorStatus.SERVICE_ERROR, "更新失败");
     }
 
+    @GetMapping("/match")
+    @ApiOperation("用户匹配")
+    Result<List<User>> match(Integer max, HttpServletRequest request) {
+        if (max == null || max < 1 || max > 20) {
+            throw new BusinessException(ErrorStatus.PARAMS_ERROR, "最大匹配人数不合法");
+        }
+        User loginUser = ServletUtils.getLoginUser(request);
+        List<User> user =  userService.matchUser(max, loginUser);
+        System.out.println(user);
+        return Result.OK(user);
+    }
+
+    @GetMapping("/getSafeUserInfo")
+    @ApiOperation("获取安全用户信息")
+    Result<User> getSafeUserInfo(Long userId) {
+        if (userId == null || userId <= 0) {
+            throw new BusinessException(ErrorStatus.PARAMS_ERROR, "用户id不合法");
+        }
+        User user = userService.getSafeUserInfo(userId);
+        return Result.OK(user);
+    }
 }

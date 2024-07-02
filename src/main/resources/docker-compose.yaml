@@ -1,0 +1,12 @@
+version: "3.0"
+
+services:
+  huobanpipei:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "4003:8080"
+    restart: always
+    expose:
+      - "8080"

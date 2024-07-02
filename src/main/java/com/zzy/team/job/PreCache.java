@@ -48,7 +48,7 @@ public class PreCache {
                 List<User> users = userPage.getRecords().stream().map(item -> userService.getSafeUser(item)).collect(Collectors.toList());
                 userPage.setRecords(users);
                 for (Long userId : userIds) {
-                    String user_key = UserConstant.RECOMMEND_USER + userId;
+                    String user_key = UserConstant.RECOMMEND_USER + userId + ":1";
                     redisTemplate.opsForValue().set(user_key, userPage);
                 }
                 // 释放锁的时候 要判断是不是自己加的锁

@@ -72,5 +72,10 @@ public class TeamUser {
     /**
      * 队伍用户信息
      */
-    List<UserVo> users;
+    private List<UserVo> users;
+
+    /**
+     * 加入队伍的人数
+     */
+    private Integer joinNums;
 }

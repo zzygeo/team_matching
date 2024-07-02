@@ -77,4 +77,8 @@ public interface UserService extends IService<User> {
     Page<User> pageUsers(Integer pageNum, Integer pageSize, User loginUser);
 
     boolean isAdmin(User user);
+
+    List<User> matchUser(Integer max, User loginUser);
+
+    User getSafeUserInfo(Long userId);
 }

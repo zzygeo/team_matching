@@ -34,5 +34,10 @@ public class TeamPageRequest extends PageRequest {
      * 状态 0表示公开 1表示私有 2表示加密
      */
     private Integer teamStatus;
+
+    /**
+     * 搜索字段，模糊搜索队伍名或者描述
+     */
+    private String searchText;
 }
 

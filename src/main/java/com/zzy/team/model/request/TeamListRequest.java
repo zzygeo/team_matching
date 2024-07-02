@@ -11,6 +11,9 @@ public class TeamListRequest {
      */
     private Long id;
 
+    /**
+     * ？？？
+     */
     private List<Long> teamIds;
 
     /**

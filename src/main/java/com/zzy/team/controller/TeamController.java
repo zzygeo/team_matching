@@ -31,7 +31,6 @@ import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/team")
-@CrossOrigin(value = {"http://localhost:5173"}, allowCredentials = "true")
 @Slf4j
 @Api(tags = {"队伍管理接口"})
 public class TeamController {
@@ -99,18 +98,14 @@ public class TeamController {
 
     @GetMapping("/page")
     @ApiOperation("分页队伍列表")
-    public Result<Page<Team>> getTeamPage(TeamPageRequest teamPageRequest) {
-        // todo 分页的查询也要加上和直接查list相似的逻辑
+    public Result<Page<TeamUser>> getTeamPage(TeamPageRequest teamPageRequest, HttpServletRequest request) {
         if (teamPageRequest == null) {
             throw new BusinessException(ErrorStatus.PARAMS_ERROR);
         }
-        Page<Team> teamPage = new Page<>(teamPageRequest.getPageNum(), teamPageRequest.getPageSize());
-        Team team = new Team();
-        BeanUtils.copyProperties(teamPageRequest, team);
-        // 自动拼接查询条件，但是无法进行模糊查询
-        LambdaQueryWrapper<Team> wrapper = new LambdaQueryWrapper<>(team);
-        Page<Team> page = teamService.page(teamPage, wrapper);
-        return Result.OK(page);
+        User loginUser = ServletUtils.getLoginUser(request);
+        boolean admin = userService.isAdmin(loginUser);
+        Page<TeamUser> teamUsers = teamService.pageTeams(teamPageRequest, admin,loginUser);
+        return Result.OK(teamUsers);
     }
 
     @PostMapping("/join")

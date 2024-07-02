@@ -1,17 +1,23 @@
 package com.zzy.team.service.impl;
 
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.gson.Gson;
 import com.zzy.team.constant.ErrorStatus;
 import com.zzy.team.constant.UserConstant;
 import com.zzy.team.exception.BusinessException;
-import com.zzy.team.service.mapper.UserMapper;
 import com.zzy.team.model.domain.User;
 import com.zzy.team.service.UserService;
+import com.zzy.team.service.mapper.UserMapper;
+import com.zzy.team.utils.StringCompareUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.math3.util.Pair;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
@@ -19,6 +25,8 @@ import org.springframework.util.CollectionUtils;
 import org.springframework.util.DigestUtils;
 
 import javax.servlet.http.HttpServletRequest;
+import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
@@ -147,15 +155,15 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
             throw new BusinessException(ErrorStatus.PARAMS_ERROR, "用户不存在");
         }
         // todo 如果什么都没传的话，那么就不更新
-        
+
         return this.updateById(user);
     }
 
     /**
      * 用户脱敏
      *
-     * @par    User loginUser = UserHolder.getUser();am originalUse
      * @return
+     * @par User loginUser = UserHolder.getUser();am originalUse
      */
     public User getSafeUser(User originalUse) {
         if (originalUse == null) {
@@ -230,8 +238,8 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
         if (loginUser == null) {
             throw new BusinessException(ErrorStatus.UNAUTHORIZED_ERROR, "用户未登陆");
         }
-        // 根据当前登陆的用户推荐伙伴
-        String user_key = UserConstant.RECOMMEND_USER + loginUser.getId();
+        // 根据当前登陆的用户推荐伙伴，推荐第一页
+        String user_key = UserConstant.RECOMMEND_USER + loginUser.getId() + ":" + pageNum;
         Page<User> redisUserPage = (Page<User>) redisTemplate.opsForValue().get(user_key);
         if (redisUserPage != null) {
             return redisUserPage;
@@ -251,7 +259,69 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
 
     @Override
     public boolean isAdmin(User user) {
-        return user != null && user.getUserRole() == UserConstant.ADMIN_ROLE;
+        return user != null && user.getUserRole().equals(UserConstant.ADMIN_ROLE);
+    }
+
+    @Override
+    public List<User> matchUser(Integer max, User loginUser) {
+        if (max == null || max < 1 || max > 20) {
+            throw new BusinessException(ErrorStatus.PARAMS_ERROR);
+        }
+        LambdaQueryWrapper<User> wrapper = new LambdaQueryWrapper<>();
+        wrapper.isNotNull(User::getTags);
+        wrapper.select(User::getId, User::getTags);
+        wrapper.ne(User::getTags, "[]");
+        // 假如我先查询所有的数据
+        List<User> list = this.list(wrapper);
+        // 创建一个排序的map
+        List<Pair<User, Integer>> pairs = new ArrayList<>();
+        for (User user : list) {
+            String userTags = user.getTags();
+            ObjectMapper objectMapper = new ObjectMapper();
+            List<String> queryTags;
+            List<String> loginUserTags;
+            try {
+                queryTags = objectMapper.readValue(userTags, new TypeReference<>() {
+                });
+                loginUserTags = objectMapper.readValue(loginUser.getTags(), new TypeReference<>() {
+                });
+            } catch (JsonProcessingException e) {
+                // 遇到异常直接跳过不处理当前条
+                continue;
+            }
+            // 剔除掉自己，包装类不要用 == 判断
+            if (!user.getId().equals(loginUser.getId())) {
+                int i = StringCompareUtil.similarRates(queryTags, loginUserTags);
+                // 用户多了有内存增加的风险
+                pairs.add(new Pair<>(user, i));
+            }
+        }
+        List<Pair<User, Integer>> collect = pairs.stream().sorted(Comparator.comparing(Pair::getValue)).collect(Collectors.toList());
+        List<Long> userIds = collect.stream().map(p -> p.getKey().getId()).limit(max).collect(Collectors.toList());
+        List<User> users = this.listByIds(userIds).stream().map(this::getSafeUser).sorted(new Comparator<User>() {
+            @Override
+            public int compare(User o1, User o2) {
+                int i = userIds.indexOf(o1.getId());
+                int i2 = userIds.indexOf(o2.getId());
+                return Integer.compare(i, i2);
+            }
+        }).collect(Collectors.toList());
+        return users;
+    }
+
+    @Override
+    public User getSafeUserInfo(Long userId) {
+        if (userId == null || userId <= 0) {
+            throw new BusinessException(ErrorStatus.PARAMS_ERROR);
+        }
+        User user = this.getById(userId);
+        if (user == null) {
+            throw new BusinessException(ErrorStatus.PARAMS_ERROR, "要查询的id不存在");
+        }
+        user.setPhone(null);
+        user.setEmail(null);
+        user.setUserPassword(null);
+        return user;
     }
 }
 
