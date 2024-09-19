@@ -1,7 +1,9 @@
-package com.zzy.team.service.mapper;
+package com.zzy.team.mapper;
 
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.zzy.team.model.domain.User;
+
+import java.util.List;
 
 /**
 * @author zzy
@@ -10,7 +12,7 @@ import com.zzy.team.model.domain.User;
 * @Entity generator.domain.User
 */
 public interface UserMapper extends BaseMapper<User> {
-
+    User recomendUser();
 }
 
 

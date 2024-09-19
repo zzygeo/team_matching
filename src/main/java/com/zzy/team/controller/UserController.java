@@ -1,11 +1,13 @@
 package com.zzy.team.controller;
 
+import cn.hutool.bloomfilter.BitMapBloomFilter;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.zzy.team.common.Result;
 import com.zzy.team.constant.ErrorStatus;
 import com.zzy.team.constant.UserConstant;
 import com.zzy.team.exception.BusinessException;
+import com.zzy.team.manager.UserRecommendationManager;
 import com.zzy.team.model.domain.Team;
 import com.zzy.team.model.domain.User;
 import com.zzy.team.model.request.UserLoginRequest;
@@ -23,6 +25,7 @@ import org.springframework.web.bind.annotation.*;
 
 import javax.servlet.http.HttpServletRequest;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
@@ -46,11 +49,12 @@ public class UserController {
         String userAccount = userRegisterRequest.getUserAccount();
         String userPassword = userRegisterRequest.getUserPassword();
         String checkPassword = userRegisterRequest.getCheckPassword();
+
         // controller层一般对本身的数据的校验
         if (StringUtils.isAnyBlank(userAccount, userPassword, checkPassword)) {
             throw new BusinessException(ErrorStatus.PARAMS_ERROR);
         }
-        boolean b = userService.userRegister(userAccount, userPassword, checkPassword);
+        boolean b = userService.userRegister(userRegisterRequest);
         return b ? Result.OK("注册成功", null) : Result.FAIL(ErrorStatus.SERVICE_ERROR, "注册失败");
     }
 
@@ -111,14 +115,26 @@ public class UserController {
 
     @GetMapping("/recommend")
     @ApiOperation("推荐用户")
-    public Result recommendUsers(Integer pageNum, Integer pageSize, HttpServletRequest request) {
-        // 先从缓存中读取数据
-        if (pageNum == null || pageNum < 1 || pageSize == null || pageSize < 1) {
-            throw new BusinessException(ErrorStatus.PARAMS_ERROR, "页码或页数不合法");
-        }
+    public Result recommendUsers(HttpServletRequest request) {
+        // 先获取过滤器，如果没有就创建
+        // 随机推送数据库里的用户，如果有重复的，就丢弃，直到推荐到10个为止
         User loginUser = ServletUtils.getLoginUser(request);
-        Page<User> userPage = userService.pageUsers(pageNum, pageSize, loginUser);
-        return Result.OK(userPage);
+        Long id = loginUser.getId();
+        BitMapBloomFilter bitMapBloomFilter = UserRecommendationManager.get(id);
+        if (bitMapBloomFilter == null) {
+            bitMapBloomFilter = UserRecommendationManager.create(id);
+        }
+        int total = 0;
+        List<User> lists = new ArrayList<>();
+        while (total < 10) {
+            User user = userService.recomendUser();
+            boolean contains = bitMapBloomFilter.contains(user.getId().toString());
+            if (!contains) {
+                lists.add(user);
+                total++;
+            }
+        }
+        return Result.OK(lists);
     }
 
     @PostMapping("/delete")
@@ -170,7 +186,6 @@ public class UserController {
         }
         User loginUser = ServletUtils.getLoginUser(request);
         List<User> user =  userService.matchUser(max, loginUser);
-        System.out.println(user);
         return Result.OK(user);
     }
 

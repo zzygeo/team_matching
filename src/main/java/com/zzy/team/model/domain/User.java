@@ -5,6 +5,7 @@ import com.baomidou.mybatisplus.annotation.*;
 import java.io.Serializable;
 import java.util.Date;
 import lombok.Data;
+import lombok.experimental.Accessors;
 
 /**
  * 用户表
@@ -12,6 +13,7 @@ import lombok.Data;
  */
 @TableName(value ="user")
 @Data
+@Accessors(chain = true)
 public class User implements Serializable {
     /**
      * 用户id

@@ -12,8 +12,9 @@ import com.zzy.team.constant.ErrorStatus;
 import com.zzy.team.constant.UserConstant;
 import com.zzy.team.exception.BusinessException;
 import com.zzy.team.model.domain.User;
+import com.zzy.team.model.request.UserRegisterRequest;
 import com.zzy.team.service.UserService;
-import com.zzy.team.service.mapper.UserMapper;
+import com.zzy.team.mapper.UserMapper;
 import com.zzy.team.utils.StringCompareUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
@@ -46,8 +47,21 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
     @Autowired
     RedisTemplate redisTemplate;
 
+    @Autowired
+    UserMapper userMapper;
+
     @Override
-    public boolean userRegister(String userAccount, String userPassword, String checkPassword) {
+    public boolean userRegister(UserRegisterRequest userRegisterRequest) {
+        if (userRegisterRequest == null) {
+            throw new BusinessException(ErrorStatus.PARAMS_ERROR);
+        }
+        String userAccount = userRegisterRequest.getUserAccount();
+        String userPassword = userRegisterRequest.getUserPassword();
+        String checkPassword = userRegisterRequest.getCheckPassword();
+        Integer gender = userRegisterRequest.getGender();
+        String phone = userRegisterRequest.getPhone();
+        String email = userRegisterRequest.getEmail();
+
         // 1.校验
         if (StringUtils.isAnyBlank(userAccount, userPassword, checkPassword)) {
             throw new BusinessException(ErrorStatus.PARAMS_ERROR, "用户名或密码不能为空");
@@ -81,10 +95,10 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
         // 密码加密
         String encryptPassword = DigestUtils.md5DigestAsHex((UserConstant.PASSWORD_SALT + userPassword).getBytes());
 
-        // 插入数据
+        // 插入数据，todo 可以对邮箱、手机号、性别做校验
         User user = new User();
-        user.setUserAccount(userAccount);
-        user.setUserPassword(encryptPassword);
+        user.setUserAccount(userAccount).setUserPassword(encryptPassword)
+                .setEmail(email).setPhone(phone).setGender(gender);
         boolean save = this.save(user);
         if (!save) {
             throw new BusinessException(ErrorStatus.SERVICE_ERROR, "注册失败");
@@ -321,6 +335,12 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
         user.setPhone(null);
         user.setEmail(null);
         user.setUserPassword(null);
+        return user;
+    }
+
+    @Override
+    public User recomendUser() {
+        User user = userMapper.recomendUser();
         return user;
     }
 }

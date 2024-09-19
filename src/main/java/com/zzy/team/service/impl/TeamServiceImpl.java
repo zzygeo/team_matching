@@ -19,7 +19,7 @@ import com.zzy.team.model.vo.UserVo;
 import com.zzy.team.service.TeamService;
 import com.zzy.team.service.UserService;
 import com.zzy.team.service.UserTeamService;
-import com.zzy.team.service.mapper.TeamMapper;
+import com.zzy.team.mapper.TeamMapper;
 import org.apache.commons.lang3.StringUtils;
 import org.jetbrains.annotations.NotNull;
 import org.redisson.api.RLock;

@@ -1,4 +1,4 @@
-package com.zzy.team.service.mapper;
+package com.zzy.team.mapper;
 
 import com.zzy.team.model.domain.Tag;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;

@@ -2,7 +2,9 @@ package com.zzy.team.service;
 
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.IService;
+import com.zzy.team.mapper.UserMapper;
 import com.zzy.team.model.domain.User;
+import com.zzy.team.model.request.UserRegisterRequest;
 
 import javax.servlet.http.HttpServletRequest;
 import java.util.List;
@@ -16,12 +18,9 @@ public interface UserService extends IService<User> {
     /**
      * 用户注册
      *
-     * @param userAccount   用户名
-     * @param userPassword  用户密码
-     * @param checkPassword 确认密码
      * @return 注册成功-返回用户id，注册失败-抛出异常
      */
-    boolean userRegister(String userAccount, String userPassword, String checkPassword);
+    boolean userRegister(UserRegisterRequest userRegisterRequest);
 
     /**
      * 用户登录
@@ -81,4 +80,6 @@ public interface UserService extends IService<User> {
     List<User> matchUser(Integer max, User loginUser);
 
     User getSafeUserInfo(Long userId);
+
+    User recomendUser();
 }

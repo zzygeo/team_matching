@@ -10,7 +10,7 @@ import java.util.Date;
 import java.util.TimeZone;
 
 @SpringBootApplication
-@MapperScan("com.zzy.team.service.mapper")
+@MapperScan("com.zzy.team.mapper")
 @EnableScheduling
 public class
 TeamYuPaoApplication {

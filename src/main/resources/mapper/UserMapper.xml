@@ -30,4 +30,12 @@
         update_time,is_delete,user_role,
         planet_code,tags,gender,profile
     </sql>
+
+    <select id="recomendUser" resultType="com.zzy.team.model.domain.User">
+        SELECT *
+        FROM user AS t1
+                 JOIN (SELECT ROUND(RAND() * (SELECT MAX(id) FROM user)) AS id) AS t2
+        WHERE t1.id >= t2.id
+            LIMIT 1;
+    </select>
 </mapper>
